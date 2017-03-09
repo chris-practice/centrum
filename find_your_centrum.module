@@ -1,0 +1,547 @@
+<?php
+
+
+ /** Fetching term values of age  **/
+ 
+ function term_values_age(){
+  $vocabulary_id = taxonomy_vocabulary_machine_name_load('age')->vid;
+  $cnd = 0;
+  $class = 'age';
+  
+  $values = taxonomy_get_tree($vocabulary_id);
+
+  $age_term_values;
+  foreach($values as $key => $val){
+  //$div = '<div class = "'. $class . $cnd . '">' . $val->name . '</div>'  ;
+  $age_term_values[$val->tid] = $val->name;   
+ // $cnd++;
+  }
+  return $age_term_values;
+}
+  
+ /** Fetching term values of gender **/
+ 
+ function term_values_gender(){
+  $vocabulary_id = taxonomy_vocabulary_machine_name_load('gender')->vid;
+
+  $values = taxonomy_get_tree($vocabulary_id);
+  $gender_term_values;
+  foreach($values as $key => $val){
+  $gender_term_values[$val->tid] = $val->name; 
+  }
+  return $gender_term_values;
+}
+
+ /** Fetching term values of other considerations **/
+ 
+ function term_values_other_considerations(){
+  $vocabulary_id = taxonomy_vocabulary_machine_name_load('other_considerations')->vid;
+
+  $values = taxonomy_get_tree($vocabulary_id);
+  $other_considerations_term_values;
+  foreach($values as $key => $val){
+  $other_considerations_term_values[$val->tid] = $val->name; 
+  }
+  return $other_considerations_term_values;
+}
+
+ /** Fetching term values of health benefits **/
+ 
+ function term_values_health_interests(){
+
+
+  $vocabulary_id = taxonomy_vocabulary_machine_name_load('health_benefits')->vid;
+
+  $values = taxonomy_get_tree($vocabulary_id);
+  $health_benefits_term_values;
+  foreach($values as $key => $val){
+  $term = taxonomy_term_load($val->tid);
+  $result = field_view_field('taxonomy_term',$term,'field_health_benefits_image');
+  //echo'<pre>';print_r($result);
+  $health_benefits_term_values[$val->tid] = $val->name;
+  //$health_benefits_term_values[$val->name] = render($result);
+  }
+  return $health_benefits_term_values;
+}
+
+/**
+ * Implements hook_menu().
+ */
+ 
+function find_your_centrum_menu() {
+  $items['find_your_centrum'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('find_your_centrum_form'),
+  	'access callback' => TRUE,
+	  'access arguments' => array(
+    'access content',
+    ),
+  );
+  $items['abc'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('test'),
+    'access callback' => TRUE,
+    'access arguments' => array(
+    'access content',
+    ),
+  );
+  return $items;
+}
+
+/* function test() {
+  $form = array();
+  $states = array('MH' => 'MH', 'UP' => 'UP', 'MP' => 'MP');
+  $cities = array('MH' => array('mumbai', 'pune'), 'UP' => array('qwe', 'asd'), 'MP' => array('zxc'));
+  $form['state'] = array(
+    '#type' => 'select',
+    '#title' => t('State'),
+    '#options' => $states,
+    '#ajax' => array(
+      'callback' => 'fetch_cities',
+      'wrapper' => 'cities'
+    )
+  );
+
+  $form['city'] = array(
+    '#type' => 'select',
+    '#title' => t('City'),
+    '#prefix' => '<div id="cities">',
+    '#suffix' => '</div>'
+  );
+
+  if(isset($form_state['values']['state'])) {
+    watchdog('hiii', 'hiii');
+    $form['city']['#options'] = $cities[$form_state['values']['state']];
+  }
+  return $form;
+}
+
+function fetch_cities($form, $form_state) {
+  return $form['city'];
+} */
+/**
+ * Implements hook_block_info().
+ */
+function find_your_centrum_block_info() {
+  $blocks['find_your_centrum'] = array(
+    'info' => t('Find your centrum block'),
+  );
+  return $blocks;	
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function find_your_centrum_block_view($delta = '') {
+  $block = array();
+  switch ($delta) {
+    case 'find_your_centrum':
+      $block['content'] = drupal_get_form('find_your_centrum_form');
+      break;
+  }
+  return $block;
+}
+
+
+/**
+ * Implements hook_form().
+  */
+
+
+function find_your_centrum_form($form, &$form_state) {
+  $age_terms = term_values_age();
+  $gender_terms = term_values_gender();
+  $other_consideratoins_terms = term_values_other_considerations();
+  
+  $health_benefits_terms = term_values_health_interests();
+  $form["wrapper"] = array("#markup" => "<div id='inline-messages'></div>");
+  
+  $form['age'] = array(
+    '#type' => 'radios',
+    '#title' => t('How old are your family member?'),
+    //'#default_value' => 'age',
+    //'#required' => TRUE, 
+	//'#weight' => -5,
+    '#options' => $age_terms,
+    '#prefix' => "<div id = 'age'>",
+    '#suffix' => "</div>",
+  );
+
+  $form['gender'] = array(
+    '#type' => 'radios',
+    '#title' => t('Who is this product for?'),
+    '#options' => $gender_terms,
+    '#prefix' => "<div id = 'gender' style='display:none'>",
+    '#suffix' => "</div>",
+    '#ajax' => array(
+     'callback' => 'ajax_callback_gender',
+     'effect' => 'fade',
+     '#wrapper' => 'other_considerations',     
+   ),
+  );  
+ // $form['other_considerations']['#options'] = array('_none' => t("Select District First"));   
+ /* $other_consideratoins_terms = array();
+if(isset($form_state['values']['gender']) && isset($form_state['values']['age'])) {
+    //$other_consideratoins_terms = array();
+    $other_consideratoins_terms = other_considerations_values($form_state);
+    //$form['other_considerations']['#options'] = other_considerations_values($form_state);
+    //watchdog('form_state', '<pre>' . print_r($form_state, true) . '</pre>');
+    watchdog('other_consideratoins_terms', '<pre>' . print_r($other_consideratoins_terms, true) . '</pre>');
+   }*/
+  
+ $form['other_considerations'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Do you have any other considerations?'),
+    '#options' => $other_consideratoins_terms,
+    '#prefix' => "<div id = 'other_considerations'  style='display:none'>",
+    '#suffix' => "</div>",
+  ); 
+
+  $form['health_interest'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Do you have any specific health interests?'),
+    '#options' => $health_benefits_terms,
+    '#prefix' => "<div id = 'health_interests' style='display:none'>",
+    '#suffix' => "</div>",
+
+  );
+
+  $form['next_1'] = array(
+   '#type' => 'submit',
+   '#value' => t('Next_1'),
+   '#ajax' => array(
+     'callback' => 'find_your_centrum_form_submit_next_1',
+     'effect' => 'fade',     
+   ),
+    '#prefix' => "<div id = 'next_1'>",
+    '#suffix' => "</div>",   
+  );
+
+   $form['back_1'] = array(
+   '#type' => 'submit',
+   '#value' => t('Back_1'),
+   '#ajax' => array(
+           'callback' => 'find_your_centrum_form_submit_back_1',
+           'effect' => 'fade',
+    ),
+    '#prefix' => "<div id = 'back_1' style='display:none'>",
+    '#suffix' => "</div>",
+  );
+
+  $form['next_2'] = array(
+   '#type' => 'submit',
+   '#value' => t('Next_2'),
+   '#ajax' => array(
+     'callback' => 'find_your_centrum_form_submit_next_2',
+     'effect' => 'fade',
+   ),
+    '#prefix' => "<div id = 'next_2' style='display:none'>",
+    '#suffix' => "</div>",
+  );
+
+  $form['back_2'] = array(
+   '#type' => 'submit',
+   '#value' => t('Back_2'),
+   '#ajax' => array(
+           'callback' => 'find_your_centrum_form_submit_back_2',
+           'effect' => 'fade',
+    ),
+    '#prefix' => "<div id = 'back_2' style='display:none'>",
+    '#suffix' => "</div>",  
+  );
+
+  
+   $form['next_3'] = array(
+   '#type' => 'submit',
+   '#value' => t('Next_3'),
+   '#ajax' => array(
+     'callback' => 'find_your_centrum_form_submit_next_3',
+     'effect' => 'fade',
+   ),
+    '#prefix' => "<div id = 'next_3' style='display:none'>",
+    '#suffix' => "</div>",
+  );
+  
+  
+   $form['back_3'] = array(
+   '#type' => 'submit',
+   '#value' => t('back_3'),
+   '#ajax' => array(
+     'callback' => 'find_your_centrum_form_submit_back_3',
+     'effect' => 'fade',
+   ),
+    '#prefix' => "<div id = 'back_3' style='display:none'>",
+    '#suffix' => "</div>",
+  );
+
+   $form['back_4'] = array(
+   '#type' => 'submit',
+   '#value' => t('back_4'),
+   '#ajax' => array(
+     'callback' => 'find_your_centrum_form_submit_back_4',
+     'effect' => 'fade',
+   ),
+    '#prefix' => "<div id = 'back_4' style='display:none'>",
+    '#suffix' => "</div>",
+  );   
+  
+   $form['product_results'] = array(
+   '#type' => 'submit',
+   '#value' => t('submit'),
+   '#ajax' => array(
+     'callback' => 'ajax_results',
+	 'wrapper' => 'inline-messages',
+     'effect' => 'fade',
+   ),
+	);
+
+  return $form;
+
+}     
+/**
+   * Implements hook_form_submit
+**/    
+
+ function find_your_centrum_form_submit_next_1($form, &$form_state){
+  //$display_form = render($form_value);
+    return array(
+	  '#type' => 'ajax',
+	  '#commands' => array(
+      ajax_command_invoke("#age", 'hide'),
+      ajax_command_invoke("#next_1", 'hide'),
+      ajax_command_invoke('#gender', 'show'),
+      ajax_command_invoke("#back_1", 'show'),
+      ajax_command_invoke("#next_2", 'show'),
+		)
+	);
+      //$form_state['rebuild'] = TRUE;
+ }
+  
+ function find_your_centrum_form_submit_back_1($form, &$form_state){
+  
+  //$display_form = render($form_value);
+    return array(
+    '#type' => 'ajax',
+    '#commands' => array(
+      ajax_command_invoke("#age", 'show'),
+      ajax_command_invoke("#next_1", 'show'),
+      ajax_command_invoke('#gender', 'hide'),
+      ajax_command_invoke("#back_1", 'hide'),
+      ajax_command_invoke("#next_2", 'hide'),
+    )
+  );
+      //$form_state['rebuild'] = TRUE;
+ }
+
+ function find_your_centrum_form_submit_next_2($form, &$form_state){
+  
+  //$display_form = render($form_value);
+    return array(
+    '#type' => 'ajax',
+    '#commands' => array(
+      ajax_command_invoke("#age", 'hide'),
+      ajax_command_invoke("#next_1", 'hide'),
+      ajax_command_invoke('#gender', 'hide'),
+      ajax_command_invoke("#back_1", 'hide'),
+      ajax_command_invoke("#next_2", 'hide'),
+      ajax_command_invoke("#other_considerations", 'show'),
+      ajax_command_invoke("#back_2", 'show'),
+      ajax_command_invoke("#next_3", 'show'),
+     // ajax_command_invoke("#next_2", 'show'),
+    )
+  );
+      //$form_state['rebuild'] = TRUE;
+ }
+
+  function find_your_centrum_form_submit_back_2($form, &$form_state){
+  
+  //$display_form = render($form_value);
+    return array(
+    '#type' => 'ajax',
+    '#commands' => array(
+      ajax_command_invoke("#age", 'hide'),
+      ajax_command_invoke("#next_1", 'hide'),
+      ajax_command_invoke('#gender', 'show'),
+      ajax_command_invoke("#back_1", 'show'),
+      ajax_command_invoke("#next_2", 'show'),
+      ajax_command_invoke("#other_considerations", 'hide'),
+      ajax_command_invoke("#back_2", 'hide'),
+      ajax_command_invoke("#next_3", 'hide'),
+
+     // ajax_command_invoke("#next_2", 'show'),
+    )
+  );
+      //$form_state['rebuild'] = TRUE;
+ }
+  
+  function find_your_centrum_form_submit_next_3($form, &$form_state){
+  
+  //$display_form = render($form_value);
+    return array(
+    '#type' => 'ajax',
+    '#commands' => array(
+      ajax_command_invoke("#age", 'hide'),
+      ajax_command_invoke("#next_1", 'hide'),
+      ajax_command_invoke('#gender', 'hide'),
+      ajax_command_invoke("#back_1", 'hide'),
+      ajax_command_invoke("#next_2", 'hide'),
+      ajax_command_invoke("#other_considerations", 'hide'),
+      ajax_command_invoke("#back_2", 'hide'),
+      ajax_command_invoke('#gender', 'hide'),
+      ajax_command_invoke("#health_interests", 'show'),
+      ajax_command_invoke("#next_3", 'hide'),
+      ajax_command_invoke("#next_4", 'show'),
+      ajax_command_invoke("#back_4", 'show'),
+    )
+  );
+      //$form_state['rebuild'] = TRUE;
+ }
+  
+function find_your_centrum_form_submit_back_3($form, &$form_state){
+  
+  //$display_form = render($form_value);
+    return array(
+    '#type' => 'ajax',
+    '#commands' => array(
+      ajax_command_invoke("#age", 'hide'),
+      ajax_command_invoke("#next_1", 'hide'),
+      ajax_command_invoke('#gender', 'hide'),
+      ajax_command_invoke("#back_1", 'hide'),
+      ajax_command_invoke("#next_2", 'hide'),
+      ajax_command_invoke("#other_considerations", 'show'),
+      ajax_command_invoke("#back_2", 'show'),
+      ajax_command_invoke("#next_3", 'show'),
+      ajax_command_invoke("#health_interests", 'hide'),
+     // ajax_command_invoke("#next_2", 'show'),
+    )
+  );
+      //$form_state['rebuild'] = TRUE;
+ }
+
+function find_your_centrum_form_submit_back_4($form, &$form_state){
+  
+  //$display_form = render($form_value);
+    return array(
+    '#type' => 'ajax',
+    '#commands' => array(
+       ajax_command_invoke("#age", 'hide'),
+      ajax_command_invoke("#next_1", 'hide'),
+      ajax_command_invoke('#gender', 'hide'),
+      ajax_command_invoke("#back_1", 'hide'),
+      ajax_command_invoke("#next_2", 'hide'),
+      ajax_command_invoke("#other_considerations", 'show'),
+      ajax_command_invoke("#back_2", 'show'),
+      ajax_command_invoke("#next_3", 'show'),
+      ajax_command_invoke("#health_interests", 'hide'),
+      ajax_command_invoke("#back_4", 'hide'),
+     // ajax_command_invoke("#next_2", 'show'),
+    )
+  );
+      //$form_state['rebuild'] = TRUE;
+ }
+ /* function ajax_callback_gender($form, &$form_state) {
+  // $form['other_consideratoins']['#options'] = other_considerations_values($form_state);
+  return $form['other_considerations'];
+ }
+ function other_considerations_values($form_state){
+
+  $age_target_id = $form_state['values']['age'];
+  $gender_target_id = $form_state['values']['gender'];
+
+
+  //watchdog('fycentrum_form_state', '<pre>' . print_r( $form_state['values'], true) . '</pre>');
+  //watchdog('fycentrum_age', '<pre>' . print_r( $age_target_id, true) . '</pre>');
+  //watchdog('fycentrum_gender', '<pre>' . print_r( $gender_target_id, true) . '</pre>');
+
+  $language = $GLOBALS['language']->language;
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', 'products')
+    ->propertyCondition('status', 1)
+    ->fieldCondition('field_age', 'target_id', $age_target_id, '=')
+    ->fieldCondition('field_gender', 'target_id', $gender_target_id, '=');
+
+  $result = $query->execute();
+
+  $node_val = array();
+  foreach($result as $key=>$values){
+    foreach($values as $key1=>$values1){
+      $node_val[] = node_load($key1);
+    }
+  }
+
+  $term_id = array('0' => '');
+
+
+  foreach ($node_val as $key => $value) {
+    foreach ($value->field_other_considerations['en'] as $key => $value) {
+      foreach($value as $key1=>$values1){
+        $term_id[$values1] = taxonomy_term_load($values1)->name_field[$language][0]['value'];
+      }
+    }
+  }
+
+//$final_array = array('123','456');
+
+//$form_state['rebuild'] = TRUE;
+//  $form['other_considerations']['#options'] = $term_id;
+ // watchdog('term_id_final', '<pre>' . print_r($term_id, true) . '</pre>');
+ // $form_state['rebuild'] = TRUE;
+return $term_id;
+} */ 
+
+
+
+function find_your_centrum_product_results($form, &$form_state){
+   $age = $form_state['values']['age'];
+   $gender = $form_state['values']['gender'];
+   $other_considerations = $form_state['values']['other_considerations'];
+   $health_interest = $form_state['values']['health_interest'];
+
+    $other_considerations_list = "'". implode("', '", $other_considerations) ."'";
+    $health_interest_list = "'". implode("', '", $health_interest) ."'";
+
+
+		$query = db_query("SELECT DISTINCT node.title AS node_title, node.nid AS nid, node.language AS node_language, node.created AS node_created
+		FROM 
+		{node} node
+		LEFT JOIN {field_data_field_age} field_data_field_age ON node.nid = field_data_field_age.entity_id AND field_data_field_age.entity_type = 'node'
+		LEFT JOIN {field_data_field_gender} field_data_field_gender ON node.nid = field_data_field_gender.entity_id AND field_data_field_gender.entity_type = 'node'
+		LEFT JOIN {field_data_field_health_interest} field_data_field_health_interest ON node.nid = field_data_field_health_interest.entity_id AND field_data_field_health_interest.entity_type = 'node'
+	    LEFT JOIN {field_data_field_other_considerations} field_data_field_other_considerations ON node.nid = field_data_field_other_considerations.entity_id AND field_data_field_other_considerations.entity_type = 'node'
+		WHERE (( (node.status = '1') AND (node.type IN  ('products')) 
+		AND (field_data_field_age.field_age_target_id = '$age') 
+		AND (field_data_field_gender.field_gender_target_id = '$gender')
+		AND (field_data_field_health_interest.field_health_interest_target_id IN ($health_interest_list))
+		AND (field_data_field_other_considerations.field_other_considerations_target_id IN ($other_considerations_list))
+		))
+		");
+	$result = $query->fetchAll(PDO::FETCH_ASSOC);
+	watchdog('result', '<pre>' . print_r($result, true) . '</pre>');
+
+	$node_values;	
+	
+	foreach($result as $key=>$values){
+		 $node_values[$values['nid']] = node_load($values['nid']);  	
+	}
+	
+	return $node_values;
+}
+
+
+function ajax_results($form, &$form_state){
+	$product_results = find_your_centrum_product_results($form, $form_state);
+	$result = '<div class="result">';
+	foreach($product_results as $k=>$v) {
+	  $result .=  '<span class"node-title">' . $v->title. '</span><img src="' . image_style_url('thumbnail', $v->field_thumbnail_image['en'][0]['uri']) . '" alt="img not found."/>';
+    }
+	$result .= '</div>';
+	watchdog('product_title', '<pre>' . print_r($product_results, true) . '</pre>');
+	watchdog('result', '<pre>' . print_r($result, true) . '</pre>');
+	return array(
+      '#type' => 'ajax',
+      '#commands' => array(
+	    ajax_command_replace("#inline-messages", "<div id='inline-messages'>" . $result . '</div>'),
+      )
+    );
+}
